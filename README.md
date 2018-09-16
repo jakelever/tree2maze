@@ -32,7 +32,31 @@ python tree2maze.py --tree example_tree.tsv --outSVG example_maze.svg
 
 Additional flags are:
 
-- --outDot : Output a Graphviz dot file to generate a simple tree structure with edges colored
-- --minLayers : Set a minimum number of layers to create for the maze
-- --maxLayers : Set a maximum number of layers (tree may be incomplete)
+```
+  --debug               Add some debug information
+  --seed SEED           Seed for randomness
+  --clockwiseProb CLOCKWISEPROB
+                        Chance of the spiral going clockwise at each layer
+                        (0.0-1.0)
+  --extendProb EXTENDPROB
+                        Chance of just extending a path without branching or
+                        ending (0.0-1.0)
+  --neverDeadend        Never let a path just end even if there are no more
+                        children
+  --textmode TEXTMODE   Whether to display the path name along the path
+                        (path), simply at the start (simple) or not at all
+                        (none)
+  --tree TREE           Tab delimited file with source node name as first
+                        column and destination nodes (comma-delimited) as
+                        second column
+  --outSVG OUTSVG       SVG output of maze representation
+  --outDot OUTDOT       DOT output of tree
+  --minLayers MINLAYERS
+                        Whether to put a lower-limit on the number of layer,
+                        or just weight until tree has been fully realised
+  --maxLayers MAXLAYERS
+                        Whether to put an upper-limit on the number of layer,
+                        or just weight until tree has been fully realised
+```
+
 
