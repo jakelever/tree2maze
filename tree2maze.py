@@ -3,6 +3,7 @@ import math
 from collections import defaultdict
 import svgwrite
 import randomcolor
+import random
 
 ABOVE,BELOW,LEFT,RIGHT = 1,2,3,4
 
@@ -24,7 +25,7 @@ def getSweepCoordinatesForLayer(layer):
 
 	return clockwiseSweep
 
-def sweepClockwiseAroundLayer(layer,active):
+def sweepAroundLayer(layer,active,clockwiseProb):
 	# For each layer, sweep around and assign each grid point to an active path
 
 	assert isinstance(active,dict)
@@ -38,8 +39,12 @@ def sweepClockwiseAroundLayer(layer,active):
 	current = None
 	paths = {}
 
+	sweep = clockwiseSweep
+	if random.random() > clockwiseProb:
+		sweep = rev(clockwiseSweep)
+
 	# Sweep around twice in case we miss anything
-	for x,y in clockwiseSweep + clockwiseSweep:
+	for x,y in sweep + sweep:
 
 		# If the current location is on an active path, start tracking this path
 		if (x,y) in startLocsToIndex:
@@ -111,6 +116,11 @@ def treeToDot(tree,outFilename,colors):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Create a maze from a tree')
+	parser.add_argument('--debug',action='store_true',help='Add some debug information')
+	parser.add_argument('--seed',required=False,type=int,help='Seed for randomness')
+	parser.add_argument('--clockwiseProb',required=False,type=float,default=0.5,help='Chance of the spiral going clockwise at each layer (0.0-1.0)')
+	parser.add_argument('--extendProb',required=False,type=float,default=0.2,help='Chance of just extending a path without branching or ending (0.0-1.0)')
+	parser.add_argument('--neverDeadend',action='store_true',help='Never let a path just end even if there are no more children')
 	parser.add_argument('--tree',required=True,type=str,help='Tab delimited file with source node name as first column and destination nodes (comma-delimited) as second column')
 	parser.add_argument('--outSVG',required=True,type=str,help='SVG output of maze representation')
 	parser.add_argument('--outDot',required=False,type=str,help='DOT output of tree')
@@ -118,8 +128,15 @@ if __name__ == '__main__':
 	parser.add_argument('--maxLayers',required=False,type=int,help='Whether to put an upper-limit on the number of layer, or just weight until tree has been fully realised')
 	args = parser.parse_args()
 
+	assert args.clockwiseProb >= 0.0 and args.clockwiseProb <= 1.0
+	assert args.extendProb >= 0.0 and args.extendProb <= 1.0
+
 	tree = loadTree(args.tree)
 
+	if args.seed:
+		random.seed(args.seed)
+	else:
+		random.seed()
 
 	grid = {}
 	grid[(0,0)] = [BELOW]
@@ -132,7 +149,7 @@ if __name__ == '__main__':
 	segments = defaultdict(list)
 	segments['root'] = [(0,0)]
 
-	for layer in range(1,1000):
+	for layer in range(1,50):
 
 		# First some logic of whether we should stop as we've got enough layers, got too many layers and whether the tree is completely drawn (e.g. fully navigated)
 		if args.maxLayers and layer > args.maxLayers:
@@ -151,21 +168,25 @@ if __name__ == '__main__':
 
 		print ("Generating layer %d" % layer)
 
-		paths = sweepClockwiseAroundLayer(layer,active)
-		
-		# Decide if there is space to do a move down the tree this layer (if it is even needed)
-		moveDownTree = True
+		paths = sweepAroundLayer(layer,active,args.clockwiseProb)
+
 		for name,path in paths.items():
+			# Decide if there is space to do a move down the tree this layer (if it is not even needed)
+			moveDownTree = True
 			splitInto = 0
 			if name in tree:
 				splitInto = len(tree[name])
 
-				if len(path) < (3*splitInto):
+				if len(path) < (2*splitInto):
 					moveDownTree = False
 
-		# For each active path, split
-		for name,path in paths.items():
+			justExtendIt = (random.random() < args.extendProb)
+			if justExtendIt:
+				moveDownTree = False
+
 			if moveDownTree and name in tree:
+				if args.debug:
+					print("Budding Children", name)
 
 				# Split the section of path on this layer into the number of children and branch off after each subpath
 				splitInto = len(tree[name])
@@ -189,16 +210,24 @@ if __name__ == '__main__':
 					segments[child].append((newX,newY))
 					chars[child] = child
 
-			else:
+			elif args.neverDeadend or justExtendIt or name in tree:
 				# Or just add the full path for this active layer and setup for the next layer
+				if args.debug:
+					print('Extending',name)
 
 				segments[name] += path
+
 
 				lastX,lastY = path[-1]
 				newX,newY = nextGridPointOut(layer,lastX,lastY)
 				active[name] = (newX,newY)
 				segments[name].append((lastX,lastY))
 				segments[name].append((newX,newY))
+			else:
+				if args.debug:
+					print('Ending',name)
+				segments[name] += path
+				del active[name]
 
 
 	print ("Paths:")
@@ -212,7 +241,8 @@ if __name__ == '__main__':
 
 	# Set up colors
 	rand_color = randomcolor.RandomColor()
-	colors = { name:rand_color.generate()[0] for name in segments }
+	nodes = list(set(list(tree.keys()) + sum(tree.values(),[])))
+	colors = { name:rand_color.generate()[0] for name in nodes }
 
 	# Add a black background
 	dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), rx=None, ry=None, fill='rgb(0,0,0)'))
@@ -242,3 +272,6 @@ if __name__ == '__main__':
 
 	if args.outDot:
 		treeToDot(tree,args.outDot,colors)
+
+	print("LAYER_COUNT=%d" % maxY)
+
