@@ -162,8 +162,8 @@ if __name__ == '__main__':
 				newX,newY = nextGridPointOut(layer,lastX,lastY)
 				active[name] = (newX,newY)
 				#segments.append((lastX,lastY,newX,newY,name))
-				segments[child].append((lastX,lastY))
-				segments[child].append((newX,newY))
+				segments[name].append((lastX,lastY))
+				segments[name].append((newX,newY))
 
 
 		print(chains)
