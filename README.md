@@ -39,10 +39,7 @@ All parameters are:
                         Chance of the spiral going clockwise at each layer
                         (0.0-1.0)
   --extendProb EXTENDPROB
-                        Chance of just extending a path without branching or
-                        ending (0.0-1.0)
-  --neverDeadend        Never let a path just end even if there are no more
-                        children
+                        Chance of just extending a path without ending (0.0-1.0)
   --textmode TEXTMODE   Whether to display the path name along the path
                         (path), simply at the start (simple) or not at all
                         (none)

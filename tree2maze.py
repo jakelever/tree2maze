@@ -119,8 +119,7 @@ if __name__ == '__main__':
 	parser.add_argument('--debug',action='store_true',help='Add some debug information')
 	parser.add_argument('--seed',required=False,type=int,help='Seed for randomness')
 	parser.add_argument('--clockwiseProb',required=False,type=float,default=0.5,help='Chance of the spiral going clockwise at each layer (0.0-1.0)')
-	parser.add_argument('--extendProb',required=False,type=float,default=0.2,help='Chance of just extending a path without branching or ending (0.0-1.0)')
-	parser.add_argument('--neverDeadend',action='store_true',help='Never let a path just end even if there are no more children')
+	parser.add_argument('--extendProb',required=False,type=float,default=0.2,help='Chance of just extending a path without ending (0.0-1.0)')
 	parser.add_argument('--textmode',required=False,type=str,default='simple',help='Whether to display the path name along the path (path), simply at the start (simple) or not at all (none)')
 	parser.add_argument('--tree',required=True,type=str,help='Tab delimited file with source node name as first column and destination nodes (comma-delimited) as second column')
 	parser.add_argument('--outSVG',required=True,type=str,help='SVG output of maze representation')
@@ -183,8 +182,6 @@ if __name__ == '__main__':
 					moveDownTree = False
 
 			justExtendIt = (random.random() < args.extendProb)
-			if justExtendIt:
-				moveDownTree = False
 
 			if moveDownTree and name in tree:
 				if args.debug:
@@ -212,7 +209,7 @@ if __name__ == '__main__':
 					segments[child].append((newX,newY))
 					chars[child] = child
 
-			elif args.neverDeadend or justExtendIt or name in tree:
+			elif justExtendIt or name in tree:
 				# Or just add the full path for this active layer and setup for the next layer
 				if args.debug:
 					print('Extending',name)
