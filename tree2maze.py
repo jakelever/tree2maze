@@ -104,6 +104,8 @@ def treeToDot(tree,outFilename,colors):
 		for parent,children in tree.items():
 			for child in children:
 				outF.write("%s -> %s [color=\"%s\"];\n" % (parent.replace(' ','_'),child.replace(' ','_'),colors[child]))
+		for node,color in colors.items():
+			outF.write("%s [color=\"%s\"];\n" % (node.replace(' ','_'),color))
 		outF.write("}\n")
 
 
@@ -218,12 +220,21 @@ if __name__ == '__main__':
 	# Get each path
 	for name,coords in segments.items():
 		# Scale the coordinates
-		coords = [ (10*(x-minX),10*(maxY-y)) for x,y in coords ]
+		coords = [ (100*(x-minX),100*(maxY-y)) for x,y in coords ]
 
 		# Add coordinates as a colored polyline with a name
 		color = colors[name]
 		g = svgwrite.container.Group()
-		g.add(dwg.polyline(coords, stroke=color, stroke_width=5, fill='none'))
+		g.add(dwg.polyline(coords, stroke=color, stroke_width=50, fill='none'))
+
+		pathCommand = "M%f,%f" % (coords[0][0],coords[0][1])
+		for x,y in coords[1:]:
+			pathCommand += " L%f,%f" % (x,y)
+		w = dwg.path(d=pathCommand,fill='none')
+		text = dwg.add(svgwrite.text.Text("",font_size="25px"))
+		text.add(svgwrite.text.TextPath(path=w, text=name, startOffset=10, method='align', spacing='exact'))
+		g.add(w)
+		g.add(text)
 		g.set_desc(name)
 		dwg.add(g)
 
