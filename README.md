@@ -2,6 +2,8 @@
 
 This is a Python tool to transform a tree into a maze. Because why not!
 
+![Example of a tree and a maze](example.png)
+
 ## Installation
 
 This requires Python3 and the following libraries: svgwrite and randomcolor.
