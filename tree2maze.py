@@ -9,7 +9,9 @@ ABOVE,BELOW,LEFT,RIGHT = 1,2,3,4
 def rev(l):
 	return list(reversed(l))
 
-def getChains(layer,active):
+def sweepClockwiseAroundLayer(layer,active):
+	# For each layer, sweep around and assign each grid point to an active path
+
 	assert isinstance(active,dict)
 	startLocsToIndex = { locs:name for name,locs in active.items() }
 
@@ -30,25 +32,21 @@ def getChains(layer,active):
 
 	current = None
 	#grid = {}
-	chains = {}
+	paths = {}
 	for x,y in clockwiseSweep + clockwiseSweep:
 		if (x,y) in startLocsToIndex:
 			tmp = startLocsToIndex[(x,y)]
-			if tmp in chains:
+			if tmp in paths:
 				current = None
 			else:
 				current = tmp
-				chains[current] = []
+				paths[current] = []
 
 		if not current is None:
 			#grid[(x,y)] = current
-			chains[current].append((x,y))
-			
+			paths[current].append((x,y))
 
-	#print(chains)
-	return chains
-
-#	print(clockwiseSweep)
+	return paths
 
 
 def chunked(iterable, n):
@@ -67,15 +65,10 @@ def nextGridPointOut(layer,x,y):
 
 	raise RuntimeError('Trying to get next grid point out with layer=%d with (%d,%d)' % (layer,x,y))
 
-if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='Create a maze from a tree')
-	parser.add_argument('--tree',required=True,type=str,help='Tab delimited file with source node name as first column and destination nodes (comma-delimited) as second column')
-	parser.add_argument('--outSVG',required=True,type=str,help='SVG output of maze representation')
-	args = parser.parse_args()
-
+def loadTree(filename):
 	seen = {'root'}
 	tree = {}
-	with open(args.tree) as f:
+	with open(filename) as f:
 		for line in f:
 			line = line.strip()
 			if line.startswith('#') or line == '':
@@ -88,7 +81,16 @@ if __name__ == '__main__':
 			tree[src] = dsts
 			seen.update(dsts)
 
-	#print(tree)
+	return tree
+
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser(description='Create a maze from a tree')
+	parser.add_argument('--tree',required=True,type=str,help='Tab delimited file with source node name as first column and destination nodes (comma-delimited) as second column')
+	parser.add_argument('--outSVG',required=True,type=str,help='SVG output of maze representation')
+	args = parser.parse_args()
+
+	tree = loadTree(args.tree)
 
 	grid = {}
 	grid[(0,0)] = [BELOW]
@@ -100,44 +102,41 @@ if __name__ == '__main__':
 
 	dwg = svgwrite.Drawing(args.outSVG,profile='tiny')
 
-	#startLocs = [(0,-1)]
-
-	#getChains(1,[(0,-1),(0,1)])
 	segments = defaultdict(list)
 	segments['root'] = [(0,0)]
 
 	for layer in range(1,5):
-		chains = getChains(layer,active)
+		paths = sweepClockwiseAroundLayer(layer,active)
 		
 		doSplit = True
 
-		for name,chain in chains.items():
+		for name,path in paths.items():
 			splitInto = 0
 			if name in tree:
 				splitInto = len(tree[name])
 
-				if len(chain) < (3*splitInto):
+				if len(path) < (3*splitInto):
 					doSplit = False
 
-		for name,chain in chains.items():
+		for name,path in paths.items():
 
 			if name in tree:
 				splitInto = len(tree[name])
 				del active[name]
 
-				subchains = list(chunked(chain,splitInto))
-				print(subchains)
-				for i,(child,subchain) in enumerate(zip(tree[name],subchains)):
-					isLast = (i == (len(subchains)-1))
+				subpaths = list(chunked(path,splitInto))
+				print(subpaths)
+				for i,(child,subpath) in enumerate(zip(tree[name],subpaths)):
+					isLast = (i == (len(subpaths)-1))
 
 					if isLast:
 						if i > 0:
-							segments[child] = [subchains[i-1][-1]]
-						segments[child] += subchain
+							segments[child] = [subpaths[i-1][-1]]
+						segments[child] += subpath
 					else:
-						segments[name] += subchain
+						segments[name] += subpath
 
-					lastX,lastY = subchain[-1]
+					lastX,lastY = subpath[-1]
 					newX,newY = nextGridPointOut(layer,lastX,lastY)
 					active[child] = (newX,newY)
 					segments[child].append((lastX,lastY))
@@ -146,16 +145,16 @@ if __name__ == '__main__':
 					chars[child] = child
 
 			else:
-				segments[name] += chain
+				segments[name] += path
 
-				lastX,lastY = chain[-1]
+				lastX,lastY = path[-1]
 				newX,newY = nextGridPointOut(layer,lastX,lastY)
 				active[name] = (newX,newY)
 				segments[name].append((lastX,lastY))
 				segments[name].append((newX,newY))
 
 
-		print(chains)
+		print(paths)
 	
 	for name,coords in segments.items():
 		print(name, coords)
