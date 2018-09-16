@@ -126,7 +126,6 @@ if __name__ == '__main__':
 			if name in tree:
 				splitInto = len(tree[name])
 				del active[name]
-				del chars[name]
 
 				subchains = list(chunked(chain,splitInto))
 				print(subchains)
