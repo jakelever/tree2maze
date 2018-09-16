@@ -95,7 +95,6 @@ if __name__ == '__main__':
 
 	active,chars = {},{}
 	active['root'] = (0,-1)
-	chars['root'] = 'root'
 
 	gridChars = {}
 
@@ -107,33 +106,17 @@ if __name__ == '__main__':
 	segments = defaultdict(list)
 	segments['root'] = [(0,0)]
 
-	for layer in range(1,5):
+	for layer in range(1,10):
 		chains = getChains(layer,active)
 		
 		doSplit = True
 
 		for name,chain in chains.items():
-
-			#for (x1,y1),(x2,y2) in zip(chain[:-1],chain[1:]):
-				#dwg.add(dwg.line((x1,y1),(x2,y2)))
-				#dwg.add(dwg.line((x1,y1),(x2,y2), stroke=svgwrite.rgb(10, 10, 16, '%')))
-				#segments[name].append((x1,y1))
-			#	segments[name].append((x2,y2))
 			segments[name] += chain
-
-			# Assign the characters to the grid
-			#for x,y in chain:
-			#	if chars[name]:
-			#		gridChars[(x,y)] = chars[name][0]
-			#		chars[name] = chars[name][1:]
 			
 			splitInto = 0
 			if name in tree:
 				splitInto = len(tree[name])
-
-			#doSplit = (splitInto > 0)
-			#if chars[name]:
-			#	doSplit = False
 
 				if len(chain) < (3*splitInto):
 					doSplit = False
@@ -151,7 +134,6 @@ if __name__ == '__main__':
 					lastX,lastY = subchain[-1]
 					newX,newY = nextGridPointOut(layer,lastX,lastY)
 					active[child] = (newX,newY)
-					#segments.append((lastX,lastY,newX,newY,child))
 					segments[child].append((lastX,lastY))
 					segments[child].append((newX,newY))
 					print("Starting %s at (%d,%d)" % (child,lastX,lastY))
@@ -161,16 +143,12 @@ if __name__ == '__main__':
 				lastX,lastY = chain[-1]
 				newX,newY = nextGridPointOut(layer,lastX,lastY)
 				active[name] = (newX,newY)
-				#segments.append((lastX,lastY,newX,newY,name))
 				segments[name].append((lastX,lastY))
 				segments[name].append((newX,newY))
 
 
 		print(chains)
 	
-
-	#turtles = []
-	#turtles.append( (0,-1,RIGHT) )
 	for name,coords in segments.items():
 		print(name, coords)
 
@@ -184,33 +162,14 @@ if __name__ == '__main__':
 	print(minX, maxX, maxY)
 
 	dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), rx=None, ry=None, fill='rgb(0,0,0)'))
-	if False:
-		for name,coords in segments.items():
-			for (x1,y1),(x2,y2) in zip(coords[:-1],coords[1:]):
-				x1 = 10*(x1-minX)
-				x2 = 10*(x2-minX)
-				y1 = 10*(maxY-y1)
-				y2 = 10*(maxY-y2)
-				#coords = [ (10*(x-minX),10*(maxY-y)) for x,y in coords ]
+	for name,coords in segments.items():
+		coords = [ (10*(x-minX),10*(maxY-y)) for x,y in coords ]
 
-				color = colors[name][0]
-				#dwg.add(dwg.line((x1,y1),(x2,y2), stroke='rgb(255,255,255)', stroke_width=5))
-				#dwg.add(dwg.line((x1,y1),(x2,y2), stroke=color, stroke_width=5))
-				g = svgwrite.container.Group()
-				#g.add(dwg.polyline(coords, stroke=color, stroke_width=5))
-				g.add(dwg.line((x1,y1),(x2,y2), stroke=color, stroke_width=5))
-				g.set_desc(name)
-				dwg.add(g)
-				#dwg.add(dwg.polygon(points, fill='rgb(255,255,255)'))
-	else:	
-		for name,coords in segments.items():
-			coords = [ (10*(x-minX),10*(maxY-y)) for x,y in coords ]
-
-			color = colors[name][0]
-			g = svgwrite.container.Group()
-			g.add(dwg.polyline(coords, stroke=color, stroke_width=5, fill='none'))
-			g.set_desc(name)
-			dwg.add(g)
+		color = colors[name][0]
+		g = svgwrite.container.Group()
+		g.add(dwg.polyline(coords, stroke=color, stroke_width=5, fill='none'))
+		g.set_desc(name)
+		dwg.add(g)
 
 	dwg.save()
 
