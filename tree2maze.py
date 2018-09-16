@@ -77,6 +77,9 @@ if __name__ == '__main__':
 	tree = {}
 	with open(args.tree) as f:
 		for line in f:
+			if line.startswith('#'):
+				continue
+
 			src,dsts = line.strip().split('\t')
 			dsts = dsts.split(',')
 			assert src in seen
