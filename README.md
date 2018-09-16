@@ -2,7 +2,7 @@
 
 This is a Python tool to transform a tree into a maze. Because why not!
 
-![Example of a tree and a maze](example.png)
+![Example of a tree and a maze](example_with_text.png)
 
 ## Installation
 
