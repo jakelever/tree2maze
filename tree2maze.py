@@ -9,12 +9,7 @@ ABOVE,BELOW,LEFT,RIGHT = 1,2,3,4
 def rev(l):
 	return list(reversed(l))
 
-def sweepClockwiseAroundLayer(layer,active):
-	# For each layer, sweep around and assign each grid point to an active path
-
-	assert isinstance(active,dict)
-	startLocsToIndex = { locs:name for name,locs in active.items() }
-
+def getSweepCoordinatesForLayer(layer):
 	bottomLeft = -layer,-layer
 	bottomRight = layer,-layer
 	topLeft = -layer,layer
@@ -27,33 +22,48 @@ def sweepClockwiseAroundLayer(layer,active):
 
 	clockwiseSweep = [topLeft] + topEdge + [topRight] + rev(rightEdge) + [bottomRight] + rev(bottomEdge) + [bottomLeft] + leftEdge
 
+	return clockwiseSweep
+
+def sweepClockwiseAroundLayer(layer,active):
+	# For each layer, sweep around and assign each grid point to an active path
+
+	assert isinstance(active,dict)
+	startLocsToIndex = { locs:name for name,locs in active.items() }
+
+	clockwiseSweep = getSweepCoordinatesForLayer(layer)
+
 	for startLoc in startLocsToIndex:
 		assert startLoc in clockwiseSweep
 
 	current = None
-	#grid = {}
 	paths = {}
+
+	# Sweep around twice in case we miss anything
 	for x,y in clockwiseSweep + clockwiseSweep:
+
+		# If the current location is on an active path, start tracking this path
 		if (x,y) in startLocsToIndex:
 			tmp = startLocsToIndex[(x,y)]
 			if tmp in paths:
-				current = None
+				current = None # But ignore if we've already done this path
 			else:
 				current = tmp
 				paths[current] = []
 
+		# Add this location to the currently tracked path
 		if not current is None:
-			#grid[(x,y)] = current
 			paths[current].append((x,y))
 
 	return paths
 
-
 def chunked(iterable, n):
+	# Chunk up a list into n roughly equal sized chunks
 	chunksize = int(math.ceil(len(iterable) / n))
 	return (iterable[i * chunksize:i * chunksize + chunksize] for i in range(n))
 
 def nextGridPointOut(layer,x,y):
+	# Figure out the corresponding grid point on the next layer outwards
+
 	if x==layer:
 		return x+1,y
 	elif x==-layer:
@@ -66,6 +76,8 @@ def nextGridPointOut(layer,x,y):
 	raise RuntimeError('Trying to get next grid point out with layer=%d with (%d,%d)' % (layer,x,y))
 
 def loadTree(filename):
+	# Load a tree from a two-column file
+
 	seen = {'root'}
 	tree = {}
 	with open(filename) as f:
@@ -74,23 +86,38 @@ def loadTree(filename):
 			if line.startswith('#') or line == '':
 				continue
 
-			src,dsts = line.split('\t')
-			dsts = dsts.split(',')
-			assert src in seen
-			assert not src in tree
-			tree[src] = dsts
-			seen.update(dsts)
+			parent,children = line.split('\t')
+			children = children.split(',')
+
+			assert parent in seen, "Parent must already be a child or 'root' (%s)" % parent
+			assert not parent in tree, "Parent must already be a child or 'root' (%s)" % parent
+			assert len(children) == len(set(children)), "Children must have unique names (%s)" % children
+
+			tree[parent] = children
+			seen.update(children)
 
 	return tree
+
+def treeToDot(tree,outFilename,colors):
+	with open(outFilename,'w') as outF:
+		outF.write("digraph tree {\n")
+		for parent,children in tree.items():
+			for child in children:
+				outF.write("%s -> %s [color=\"%s\"];\n" % (parent.replace(' ','_'),child.replace(' ','_'),colors[child]))
+		outF.write("}\n")
 
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Create a maze from a tree')
 	parser.add_argument('--tree',required=True,type=str,help='Tab delimited file with source node name as first column and destination nodes (comma-delimited) as second column')
 	parser.add_argument('--outSVG',required=True,type=str,help='SVG output of maze representation')
+	parser.add_argument('--outDot',required=False,type=str,help='DOT output of tree')
+	parser.add_argument('--minLayers',required=False,type=int,help='Whether to put a lower-limit on the number of layer, or just weight until tree has been fully realised')
+	parser.add_argument('--maxLayers',required=False,type=int,help='Whether to put an upper-limit on the number of layer, or just weight until tree has been fully realised')
 	args = parser.parse_args()
 
 	tree = loadTree(args.tree)
+
 
 	grid = {}
 	grid[(0,0)] = [BELOW]
@@ -98,14 +125,29 @@ if __name__ == '__main__':
 	active,chars = {},{}
 	active['root'] = (0,-1)
 
-	gridChars = {}
-
 	dwg = svgwrite.Drawing(args.outSVG,profile='tiny')
 
 	segments = defaultdict(list)
 	segments['root'] = [(0,0)]
 
-	for layer in range(1,5):
+	for layer in range(1,1000):
+
+		if args.maxLayers and layer > args.maxLayers:
+			print("Past maximum layers. Stopping")
+			break
+
+		treeComplete = not any ( name in tree for name in active )
+
+		if args.minLayers:
+			if layer >= args.minLayers and treeComplete:
+				print("Past minimum layers and tree complete. Stopping")
+				break
+		elif treeComplete:
+			print("Tree complete. Stopping")
+			break
+
+		print ("Generating layer %d" % layer)
+
 		paths = sweepClockwiseAroundLayer(layer,active)
 		
 		doSplit = True
@@ -125,7 +167,6 @@ if __name__ == '__main__':
 				del active[name]
 
 				subpaths = list(chunked(path,splitInto))
-				print(subpaths)
 				for i,(child,subpath) in enumerate(zip(tree[name],subpaths)):
 					isLast = (i == (len(subpaths)-1))
 
@@ -141,7 +182,6 @@ if __name__ == '__main__':
 					active[child] = (newX,newY)
 					segments[child].append((lastX,lastY))
 					segments[child].append((newX,newY))
-					print("Starting %s at (%d,%d)" % (child,lastX,lastY))
 					chars[child] = child
 
 			else:
@@ -154,8 +194,7 @@ if __name__ == '__main__':
 				segments[name].append((newX,newY))
 
 
-		print(paths)
-	
+	print ("Paths:")
 	for name,coords in segments.items():
 		print(name, coords)
 
@@ -164,12 +203,13 @@ if __name__ == '__main__':
 	maxY = max ( y for name,coords in segments.items() for x,y in coords )
 
 	rand_color = randomcolor.RandomColor()
+	colors = { name:rand_color.generate()[0] for name in segments }
 
 	dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), rx=None, ry=None, fill='rgb(0,0,0)'))
 	for name,coords in segments.items():
 		coords = [ (10*(x-minX),10*(maxY-y)) for x,y in coords ]
 
-		color = rand_color.generate()[0]
+		color = colors[name]
 		g = svgwrite.container.Group()
 		g.add(dwg.polyline(coords, stroke=color, stroke_width=5, fill='none'))
 		g.set_desc(name)
@@ -177,3 +217,5 @@ if __name__ == '__main__':
 
 	dwg.save()
 
+	if args.outDot:
+		treeToDot(tree,args.outDot,colors)
