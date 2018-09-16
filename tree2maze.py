@@ -121,6 +121,7 @@ if __name__ == '__main__':
 	parser.add_argument('--clockwiseProb',required=False,type=float,default=0.5,help='Chance of the spiral going clockwise at each layer (0.0-1.0)')
 	parser.add_argument('--extendProb',required=False,type=float,default=0.2,help='Chance of just extending a path without branching or ending (0.0-1.0)')
 	parser.add_argument('--neverDeadend',action='store_true',help='Never let a path just end even if there are no more children')
+	parser.add_argument('--textmode',required=False,type=str,default='simple',help='Whether to display the path name along the path (path), simply at the start (simple) or not at all (none)')
 	parser.add_argument('--tree',required=True,type=str,help='Tab delimited file with source node name as first column and destination nodes (comma-delimited) as second column')
 	parser.add_argument('--outSVG',required=True,type=str,help='SVG output of maze representation')
 	parser.add_argument('--outDot',required=False,type=str,help='DOT output of tree')
@@ -130,6 +131,7 @@ if __name__ == '__main__':
 
 	assert args.clockwiseProb >= 0.0 and args.clockwiseProb <= 1.0
 	assert args.extendProb >= 0.0 and args.extendProb <= 1.0
+	assert args.textmode in ['path','simple','none']
 
 	tree = loadTree(args.tree)
 
@@ -248,6 +250,9 @@ if __name__ == '__main__':
 	dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), rx=None, ry=None, fill='rgb(0,0,0)'))
 
 	# Get each path
+	textgroup = svgwrite.container.Group()
+	textgroup.set_desc('text')
+
 	for name,coords in segments.items():
 		# Scale the coordinates
 		coords = [ (100*(x-minX),100*(maxY-y)) for x,y in coords ]
@@ -256,17 +261,27 @@ if __name__ == '__main__':
 		color = colors[name]
 		g = svgwrite.container.Group()
 		g.add(dwg.polyline(coords, stroke=color, stroke_width=50, fill='none'))
-
-		pathCommand = "M%f,%f" % (coords[0][0],coords[0][1])
-		for x,y in coords[1:]:
-			pathCommand += " L%f,%f" % (x,y)
-		w = dwg.path(d=pathCommand,fill='none')
-		text = dwg.add(svgwrite.text.Text("",font_size="25px"))
-		text.add(svgwrite.text.TextPath(path=w, text=name, startOffset=10, method='align', spacing='exact'))
-		g.add(w)
-		g.add(text)
 		g.set_desc(name)
 		dwg.add(g)
+
+		# Add the text name for the path
+		if not args.textmode == 'none':
+			if args.textmode == 'path':
+				pathCommand = "M%f,%f" % (coords[0][0],coords[0][1])
+				for x,y in coords[1:]:
+					pathCommand += " L%f,%f" % (x,y)
+				textpath = dwg.path(d=pathCommand,fill='none')
+				text = dwg.add(svgwrite.text.Text("",font_size="25px"))
+				text.add(svgwrite.text.TextPath(path=textpath, text=name, startOffset=10, method='align', spacing='exact'))
+				textgroup.add(textpath)
+				textgroup.add(text)
+			elif args.textmode == 'simple':
+				text = dwg.add(svgwrite.text.Text(name,insert=coords[1],font_size="25px"))
+				textgroup.add(text)
+				
+
+	if not args.textmode == 'none':
+		dwg.add(textgroup)
 
 	dwg.save()
 
