@@ -106,14 +106,12 @@ if __name__ == '__main__':
 	segments = defaultdict(list)
 	segments['root'] = [(0,0)]
 
-	for layer in range(1,10):
+	for layer in range(1,5):
 		chains = getChains(layer,active)
 		
 		doSplit = True
 
 		for name,chain in chains.items():
-			segments[name] += chain
-			
 			splitInto = 0
 			if name in tree:
 				splitInto = len(tree[name])
@@ -129,7 +127,16 @@ if __name__ == '__main__':
 
 				subchains = list(chunked(chain,splitInto))
 				print(subchains)
-				for child,subchain in zip(tree[name],subchains):
+				for i,(child,subchain) in enumerate(zip(tree[name],subchains)):
+					isLast = (i == (len(subchains)-1))
+
+					if isLast:
+						if i > 0:
+							segments[child] = [subchains[i-1][-1]]
+						segments[child] += subchain
+					else:
+						segments[name] += subchain
+
 					lastX,lastY = subchain[-1]
 					newX,newY = nextGridPointOut(layer,lastX,lastY)
 					active[child] = (newX,newY)
@@ -139,6 +146,8 @@ if __name__ == '__main__':
 					chars[child] = child
 
 			else:
+				segments[name] += chain
+
 				lastX,lastY = chain[-1]
 				newX,newY = nextGridPointOut(layer,lastX,lastY)
 				active[name] = (newX,newY)
@@ -156,15 +165,12 @@ if __name__ == '__main__':
 	maxY = max ( y for name,coords in segments.items() for x,y in coords )
 
 	rand_color = randomcolor.RandomColor()
-	colors = defaultdict( lambda : rand_color.generate() )
-
-	print(minX, maxX, maxY)
 
 	dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), rx=None, ry=None, fill='rgb(0,0,0)'))
 	for name,coords in segments.items():
 		coords = [ (10*(x-minX),10*(maxY-y)) for x,y in coords ]
 
-		color = colors[name][0]
+		color = rand_color.generate()[0]
 		g = svgwrite.container.Group()
 		g.add(dwg.polyline(coords, stroke=color, stroke_width=5, fill='none'))
 		g.set_desc(name)
