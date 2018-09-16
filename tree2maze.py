@@ -125,8 +125,8 @@ if __name__ == '__main__':
 	parser.add_argument('--tree',required=True,type=str,help='Tab delimited file with source node name as first column and destination nodes (comma-delimited) as second column')
 	parser.add_argument('--outSVG',required=True,type=str,help='SVG output of maze representation')
 	parser.add_argument('--outDot',required=False,type=str,help='DOT output of tree')
-	parser.add_argument('--minLayers',required=False,type=int,help='Whether to put a lower-limit on the number of layer, or just weight until tree has been fully realised')
-	parser.add_argument('--maxLayers',required=False,type=int,help='Whether to put an upper-limit on the number of layer, or just weight until tree has been fully realised')
+	parser.add_argument('--minLayers',required=False,type=int,help='Whether to put a lower-limit on the number of layers, or just wait until tree has been fully realised')
+	parser.add_argument('--maxLayers',required=False,type=int,help='Whether to put an upper-limit on the number of layers, or just wait until tree has been fully realised')
 	args = parser.parse_args()
 
 	assert args.clockwiseProb >= 0.0 and args.clockwiseProb <= 1.0

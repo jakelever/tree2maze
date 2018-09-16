@@ -30,7 +30,7 @@ Then usage is below:
 python tree2maze.py --tree example_tree.tsv --outSVG example_maze.svg
 ```
 
-Additional flags are:
+All parameters are:
 
 ```
   --debug               Add some debug information
@@ -52,11 +52,11 @@ Additional flags are:
   --outSVG OUTSVG       SVG output of maze representation
   --outDot OUTDOT       DOT output of tree
   --minLayers MINLAYERS
-                        Whether to put a lower-limit on the number of layer,
-                        or just weight until tree has been fully realised
+                        Whether to put a lower-limit on the number of layers,
+                        or just wait until tree has been fully realised
   --maxLayers MAXLAYERS
-                        Whether to put an upper-limit on the number of layer,
-                        or just weight until tree has been fully realised
+                        Whether to put an upper-limit on the number of layers,
+                        or just wait until tree has been fully realised
 ```
 
 
