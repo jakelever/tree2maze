@@ -257,7 +257,7 @@ if __name__ == '__main__':
 		# Add coordinates as a colored polyline with a name
 		color = colors[name]
 		g = svgwrite.container.Group()
-		g.add(dwg.polyline(coords, stroke=color, stroke_width=50, fill='none'))
+		g.add(svgwrite.shapes.Polyline(coords, stroke=color, stroke_width=50, fill='none'))
 		g.set_desc(name)
 		dwg.add(g)
 
@@ -267,13 +267,13 @@ if __name__ == '__main__':
 				pathCommand = "M%f,%f" % (coords[0][0],coords[0][1])
 				for x,y in coords[1:]:
 					pathCommand += " L%f,%f" % (x,y)
-				textpath = dwg.path(d=pathCommand,fill='none')
-				text = dwg.add(svgwrite.text.Text("",font_size="25px"))
+				textpath = svgwrite.path.Path(d=pathCommand,fill='none')
+				text = svgwrite.text.Text("",font_size="25px")
 				text.add(svgwrite.text.TextPath(path=textpath, text=name, startOffset=10, method='align', spacing='exact'))
 				textgroup.add(textpath)
 				textgroup.add(text)
 			elif args.textmode == 'simple':
-				text = dwg.add(svgwrite.text.Text(name,insert=coords[1],font_size="25px"))
+				text = svgwrite.text.Text(name,insert=coords[1],font_size="25px")
 				textgroup.add(text)
 				
 
