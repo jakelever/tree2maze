@@ -132,6 +132,7 @@ if __name__ == '__main__':
 
 	for layer in range(1,1000):
 
+		# First some logic of whether we should stop as we've got enough layers, got too many layers and whether the tree is completely drawn (e.g. fully navigated)
 		if args.maxLayers and layer > args.maxLayers:
 			print("Past maximum layers. Stopping")
 			break
@@ -150,19 +151,21 @@ if __name__ == '__main__':
 
 		paths = sweepClockwiseAroundLayer(layer,active)
 		
-		doSplit = True
-
+		# Decide if there is space to do a move down the tree this layer (if it is even needed)
+		moveDownTree = True
 		for name,path in paths.items():
 			splitInto = 0
 			if name in tree:
 				splitInto = len(tree[name])
 
 				if len(path) < (3*splitInto):
-					doSplit = False
+					moveDownTree = False
 
+		# For each active path, split
 		for name,path in paths.items():
+			if moveDownTree and name in tree:
 
-			if name in tree:
+				# Split the section of path on this layer into the number of children and branch off after each subpath
 				splitInto = len(tree[name])
 				del active[name]
 
@@ -185,6 +188,8 @@ if __name__ == '__main__':
 					chars[child] = child
 
 			else:
+				# Or just add the full path for this active layer and setup for the next layer
+
 				segments[name] += path
 
 				lastX,lastY = path[-1]
@@ -198,17 +203,24 @@ if __name__ == '__main__':
 	for name,coords in segments.items():
 		print(name, coords)
 
+	# Get some min and max coordinates for scaling
 	minX = min ( x for name,coords in segments.items() for x,y in coords )
 	maxX = max ( y for name,coords in segments.items() for x,y in coords )
 	maxY = max ( y for name,coords in segments.items() for x,y in coords )
 
+	# Set up colors
 	rand_color = randomcolor.RandomColor()
 	colors = { name:rand_color.generate()[0] for name in segments }
 
+	# Add a black background
 	dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), rx=None, ry=None, fill='rgb(0,0,0)'))
+
+	# Get each path
 	for name,coords in segments.items():
+		# Scale the coordinates
 		coords = [ (10*(x-minX),10*(maxY-y)) for x,y in coords ]
 
+		# Add coordinates as a colored polyline with a name
 		color = colors[name]
 		g = svgwrite.container.Group()
 		g.add(dwg.polyline(coords, stroke=color, stroke_width=5, fill='none'))
