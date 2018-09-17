@@ -143,7 +143,9 @@ if __name__ == '__main__':
 	grid[(0,0)] = [BELOW]
 
 	active,chars = {},{}
-	active['root'] = (0,-1)
+
+	possibleStarts = [(1,0), (-1,0), (0,1), (0,-1)]
+	active['root'] = random.choice(possibleStarts)
 
 	dwg = svgwrite.Drawing(args.outSVG,profile='tiny')
 
