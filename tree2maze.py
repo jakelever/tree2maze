@@ -173,9 +173,12 @@ if __name__ == '__main__':
 
 		for name,path in paths.items():
 			# Decide if there is space to do a move down the tree this layer (if it is not even needed)
+
+			hasChild = (name in tree)
+
 			moveDownTree = True
 			splitInto = 0
-			if name in tree:
+			if hasChild:
 				splitInto = len(tree[name])
 
 				if len(path) < (2*splitInto):
@@ -183,7 +186,7 @@ if __name__ == '__main__':
 
 			justExtendIt = (random.random() < args.extendProb)
 
-			if moveDownTree and name in tree:
+			if moveDownTree and hasChild:
 				if args.debug:
 					print("Budding Children", name)
 
@@ -209,7 +212,7 @@ if __name__ == '__main__':
 					segments[child].append((newX,newY))
 					chars[child] = child
 
-			elif justExtendIt or name in tree:
+			elif justExtendIt or hasChild:
 				# Or just add the full path for this active layer and setup for the next layer
 				if args.debug:
 					print('Extending',name)
